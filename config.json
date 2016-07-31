@@ -1,0 +1,5 @@
+{
+    "show_video": true,
+    "ip": "http://192.168.11.10:8080/videofeed",
+    "cam": "inbuilt"
+}
