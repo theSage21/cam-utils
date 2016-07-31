@@ -18,7 +18,6 @@ def add_preference(lum):
 
 def get_required_brightness(lum):
     "What is the screen brightness preferred for this type of environment"
-    # TODO: run a linear regression to figure out how much is needed
     with open('storage/screen_brightness', 'r') as fl:
         lines = fl.readlines()
     data = [list(map(float, i.strip().split(','))) for i in lines]
@@ -43,6 +42,7 @@ def set_brightness(value):
 def run(frame):
     'entrypoint for each frame'
     lum = get_lum(frame)
-    add_preference(lum)
+    # TODO: a proper way to add preferences
+    #add_preference(lum)
     br = get_required_brightness(lum)
     set_brightness(int(float(br)))
