@@ -1,5 +1,6 @@
 import os
 import cv2
+import base64
 from threading import Thread
 
 # what scripts to use
@@ -14,8 +15,15 @@ print('python run_script.py')
 
 #config options
 display = True  # display webcam output?
+#IP = 'http://192.168.11.10:8080/videofeed'  # IP camera option is available
+IP = None
 
-video_capture = cv2.VideoCapture(0)
+# -----------------------------------------------
+
+if IP is not None:
+    video_capture = cv2.VideoCapture(IP)
+else:
+    video_capture = cv2.VideoCapture(0)
 
 frame_count = 0
 while True:
