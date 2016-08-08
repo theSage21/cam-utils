@@ -1,6 +1,8 @@
 import os
 import cv2
+import numpy as np
 from PIL import Image
+from scipy.misc import imsave
 
 casc = 'support/haarcascade_frontalface_default.xml'
 face_folder = 'storage/attendance/faces/'
@@ -31,32 +33,61 @@ def get_known_faces():
         imgs = os.listdir(face_folder + '/' + person)
         for im in imgs:
             i = os.path.join(face_folder, person, im)
-            image_pil = Image.open(image_path).convert('L')
+            image_pil = Image.open(i).convert('L')
             image_np = np.array(image_pil, 'uint8')
             detected_faces = faceCascade.detectMultiScale(image_np)
             for (x, y, w, h) in detected_faces:
                 images.append(image_np[y: y + h, x: x + w])
                 labels.append(index)
-            images.append(i_data)
     return images, labels, label_map
 
 def get_classifier():
     "Returns a classifier for classifying faces"
-    rec = cv2.face.craeteLBPHFaceRecognizer()
+    rec = cv2.face.createLBPHFaceRecognizer()
     return rec
 
-def train_classifier(face_data, labels):
+def train_classifier(images, labels):
     "Given face image paths and labels: train a classifier"
     cl = get_classifier()
     cl.train(images, np.array(labels))
+    return cl
 
-def label_faces(image, recognizer, label_map):
+def label_faces(frame, recognizer, label_map, fontsize=0.8):
     "Label all known faces in the image"
     global casc
-    predict_image = np.array(predict_image_pil, 'uint8')
+    image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faceCascade = cv2.CascadeClassifier(casc)
+    predict_image = np.array(image, 'uint8')
     faces = faceCascade.detectMultiScale(predict_image)
     for (x, y, w, h) in faces:
-        nbr_predicted, conf = recognizer.predict(predict_image[y: y + h, x: x + w])
-        cv2.putText(image, label_map[nbr_predicted], (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-    return image
+        face = predict_image[y: y + h, x: x + w]
+        return_value = recognizer.predict(face)
+        cv2.putText(frame, label_map[return_value], (x,y), cv2.FONT_HERSHEY_SIMPLEX, fontsize, 255)
+        cv2.rectangle(frame, (x, y + 5), (x+w, y+h), (90, 90, 90), 2)
+    return frame
+
+def test():
+    if ret:
+        image = label_faces(frame, cl, label_map)
+        imsave('my_image.png', image)
+    video_capture.release()
+    cv2.destroyAllWindows()
+
+def test():
+    faces, labels, label_map = get_known_faces()
+    cl = train_classifier(faces, labels)
+    video_capture = cv2.VideoCapture(0)
+    print('Running loop')
+    while True:
+        ret, frame = video_capture.read()
+        #gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        new_image = label_faces(frame, cl, label_map)
+        cv2.imshow('Video', new_image)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # When everything is done, release the capture
+    video_capture.release()
+    cv2.destroyAllWindows()
+
+test()
