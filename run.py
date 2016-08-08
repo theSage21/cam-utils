@@ -6,12 +6,14 @@ from threading import Thread
 
 # -----------------------------------------------
 # import scripts to be used
+from attendance import run as attendance_run
 from screen_brightness import run as screen_run
 from face_distance import run as face_dist_run
 
 # function , every_n_frames
-runnables = [(screen_run, 20),
-             (face_dist_run, 15)]
+runnables = [#(screen_run, 50),
+             #(face_dist_run, 50),
+             (attendance_run, 3)]
 # -----------------------------------------------
 # Load configuration files
 print('python run_script.py| config.json is for configuration')

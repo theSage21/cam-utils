@@ -1,11 +1,14 @@
 import os
 import cv2
+import pickle
 import numpy as np
 from PIL import Image
 from scipy.misc import imsave
 
 casc = 'support/haarcascade_frontalface_default.xml'
 face_folder = 'storage/attendance/faces/'
+recognizer_path = 'storage/attendance/recognizer'
+label_map_path = 'storage/attendance/recognizer_label_map'
 
 def get_faces_in_frame(frame):
     "Get the cropped faces in the frame"
@@ -43,14 +46,26 @@ def get_known_faces():
 
 def get_classifier():
     "Returns a classifier for classifying faces"
+    global recognizer_path
     rec = cv2.face.createLBPHFaceRecognizer()
-    return rec
+    from_disk = os.path.exists(recognizer_path)
+    if from_disk:
+        rec.load(recognizer_path)
+    return rec, from_disk
 
-def train_classifier(images, labels):
+def train_classifier():
     "Given face image paths and labels: train a classifier"
-    cl = get_classifier()
-    cl.train(images, np.array(labels))
-    return cl
+    global recognizer_path, label_map_path
+    cl, from_disk = get_classifier()
+    if not from_disk:
+        print('Training recognizer')
+        images, labels, label_map = get_known_faces()
+        cl.train(images, np.array(labels))
+        cl.save(recognizer_path)
+        pickle.dump(label_map, open(label_map_path, 'wb'))
+    else:
+        label_map = pickle.load(open(label_map_path, 'rb'))
+    return cl, label_map
 
 def label_faces(frame, recognizer, label_map, fontsize=0.8):
     "Label all known faces in the image"
@@ -66,16 +81,19 @@ def label_faces(frame, recognizer, label_map, fontsize=0.8):
         cv2.rectangle(frame, (x, y + 5), (x+w, y+h), (90, 90, 90), 2)
     return frame
 
-def test():
-    if ret:
-        image = label_faces(frame, cl, label_map)
-        imsave('my_image.png', image)
-    video_capture.release()
-    cv2.destroyAllWindows()
+def run(frame):
+    cl, label_map = train_classifier()
+    new_image = label_faces(frame, cl, label_map)
+    cv2.imshow('attendance_window', new_image)
+    return new_image
+
 
 def test():
+    '''
+    test this app
+    '''
     faces, labels, label_map = get_known_faces()
-    cl = train_classifier(faces, labels)
+    cl, label_map = train_classifier()
     video_capture = cv2.VideoCapture(0)
     print('Running loop')
     while True:
@@ -90,4 +108,6 @@ def test():
     video_capture.release()
     cv2.destroyAllWindows()
 
-test()
+
+if __name__ == '__main__':
+    test()
