@@ -3,31 +3,17 @@ import cv2
 import pickle
 import numpy as np
 from PIL import Image
-from scipy.misc import imsave
+from scipy.misc import imsave, imresize
 
 casc = 'support/haarcascade_frontalface_default.xml'
 face_folder = 'storage/attendance/faces/'
 recognizer_path = 'storage/attendance/recognizer'
 label_map_path = 'storage/attendance/recognizer_label_map'
-
-def get_faces_in_frame(frame):
-    "Get the cropped faces in the frame"
-    global casc
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faceCascade = cv2.CascadeClassifier(casc)
-    faces = faceCascade.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(30, 30),
-        flags=cv2.CASCADE_SCALE_IMAGE
-    )
-    face_images = [frame[y: y + h, x: x + w].copy() for x, y, w, h in faces]
-    return face_images
+face_size = (50, 50)
 
 def get_known_faces():
     "return a list of known face images and their names"
-    global face_folder, casc
+    global face_folder, casc, face_size
     faceCascade = cv2.CascadeClassifier(casc)
     folders = os.listdir(face_folder)
     images, labels, label_map = [], [], {}
@@ -40,7 +26,9 @@ def get_known_faces():
             image_np = np.array(image_pil, 'uint8')
             detected_faces = faceCascade.detectMultiScale(image_np)
             for (x, y, w, h) in detected_faces:
-                images.append(image_np[y: y + h, x: x + w])
+                face_of_unknown_size = image_np[y: y + h, x: x + w]
+                normalized_face = imresize(face_of_unknown_size, face_size)
+                images.append(normalized_face)
                 labels.append(index)
     return images, labels, label_map
 
@@ -48,6 +36,7 @@ def get_classifier():
     "Returns a classifier for classifying faces"
     global recognizer_path
     rec = cv2.face.createLBPHFaceRecognizer()
+    rec = cv2.face.createEigenFaceRecognizer(num_components=80)
     from_disk = os.path.exists(recognizer_path)
     if from_disk:
         rec.load(recognizer_path)
@@ -69,13 +58,14 @@ def train_classifier():
 
 def label_faces(frame, recognizer, label_map, fontsize=0.8):
     "Label all known faces in the image"
-    global casc
+    global casc, face_size
     image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faceCascade = cv2.CascadeClassifier(casc)
     predict_image = np.array(image, 'uint8')
     faces = faceCascade.detectMultiScale(predict_image)
     for (x, y, w, h) in faces:
         face = predict_image[y: y + h, x: x + w]
+        face = imresize(face, face_size)
         return_value = recognizer.predict(face)
         cv2.putText(frame, label_map[return_value], (x,y), cv2.FONT_HERSHEY_SIMPLEX, fontsize, 255)
         cv2.rectangle(frame, (x, y + 5), (x+w, y+h), (90, 90, 90), 2)
@@ -95,6 +85,7 @@ def test():
     faces, labels, label_map = get_known_faces()
     cl, label_map = train_classifier()
     video_capture = cv2.VideoCapture(0)
+    #video_capture = cv2.VideoCapture("http://192.168.43.1:8080/videofeed")
     print('Running loop')
     while True:
         ret, frame = video_capture.read()
