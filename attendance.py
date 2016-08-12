@@ -4,6 +4,10 @@ import pickle
 import numpy as np
 from PIL import Image
 from scipy.misc import imsave, imresize
+from sklearn.ensemble import RandomForestClassifier
+from skimage.feature import hog
+from skimage import data, color, exposure
+print('Imports done')
 
 casc = 'support/haarcascade_frontalface_default.xml'
 face_folder = 'storage/attendance/faces/'
