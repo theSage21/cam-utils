@@ -1,7 +1,7 @@
 Cam-Utils
 =========
 
-Laptop camera utilities.
+Laptop camera utilities. **This is scheduled to merge into the Friday repo soon**
 
 *NOTE*: Hogs CPU so you might want ot customize which scripts to run on each frame
 
